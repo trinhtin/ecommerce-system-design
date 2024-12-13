@@ -1,10 +1,10 @@
 # ecommerce-system-design
 
+# Phần 1: Tắt SSL trong môi trường phát triển
+
 Theo mặc định, **WooCommerce API** yêu cầu **HTTPS** để đảm bảo tính bảo mật khi truyền dữ liệu (đặc biệt là các thông tin nhạy cảm như thông tin khách hàng, đơn hàng, và token xác thực). Tuy nhiên, bạn **có thể chạy WooCommerce API mà không cần HTTPS** trong môi trường phát triển (development environment) bằng cách **tắt kiểm tra SSL**.
 
----
-
-### **1. Tắt kiểm tra SSL trong WooCommerce**
+## **Cách 1: Tắt kiểm tra SSL trong WooCommerce**
 WooCommerce API có một tùy chọn để cho phép sử dụng HTTP thay vì HTTPS trong môi trường phát triển:
 
 - Thêm đoạn code sau vào file `functions.php` của theme đang sử dụng:
@@ -47,7 +47,7 @@ Nếu bạn đang làm việc trong môi trường phát triển, cách này có
 
 
 -------------------------------------------
-## I. Để bật HTTPS trên WAMP (Windows Apache MySQL PHP), bạn cần thực hiện các bước sau:
+## Cách 2: Để bật HTTPS trên WAMP (Windows Apache MySQL PHP), bạn cần thực hiện các bước sau:
 
 ---
 
@@ -121,3 +121,212 @@ Ví dụ:
 ```
 
 Bạn có thể kiểm tra lại và thử nghiệm! Nếu cần hỗ trợ thêm, mình sẵn sàng giúp!
+
+-----------------
+# Phần 2: Hướng dẫn các thao tác cơ bản để vận hành store thông qua API
+Quản trị WooCommerce shop thông qua API giúp tự động hóa nhiều tác vụ, tiết kiệm thời gian và giảm thiểu lỗi khi quản lý cửa hàng trực tuyến. Dưới đây là hướng dẫn các tác vụ cơ bản mà bạn có thể thực hiện qua **WooCommerce REST API**.
+
+---
+
+### **1. Kết nối với WooCommerce API**
+Đầu tiên, bạn cần cài đặt và kích hoạt **REST API**:
+- Đăng nhập WordPress Admin > WooCommerce > Settings > **Advanced** > REST API.
+- Tạo một **API Key**:
+  - Chọn quyền truy cập (Read, Write, hoặc Read/Write).
+  - Lưu `Consumer Key` và `Consumer Secret`.
+
+---
+
+### **2. Cấu hình HTTP Client**
+Bạn có thể sử dụng các công cụ để kết nối với API:
+- **Postman:** Công cụ phổ biến để kiểm tra API.
+- **Ngôn ngữ lập trình:** Dùng thư viện như `requests` trong Python hoặc `axios` trong JavaScript.
+
+**Base URL** của WooCommerce API sẽ là:  
+```
+https://yourstore.com/wp-json/wc/v3/
+```
+
+Xác thực bằng:
+- **Query string:** Thêm `consumer_key` và `consumer_secret` vào URL.
+- **HTTP Basic Auth:** Gửi key/secret qua header.
+
+---
+
+### **3. Các task quản trị cơ bản qua WooCommerce API**
+
+#### **3.1. Quản lý sản phẩm**
+**a. Lấy danh sách sản phẩm**  
+Endpoint: `GET /products`
+
+Ví dụ:
+```bash
+GET https://yourstore.com/wp-json/wc/v3/products?consumer_key=ck_xxx&consumer_secret=cs_xxx
+```
+
+**b. Tạo sản phẩm mới**  
+Endpoint: `POST /products`  
+Dữ liệu mẫu:
+```json
+{
+  "name": "Áo Thun",
+  "type": "simple",
+  "regular_price": "250000",
+  "description": "Áo thun chất liệu cotton cao cấp.",
+  "images": [
+    {
+      "src": "https://example.com/image.jpg"
+    }
+  ]
+}
+```
+
+**c. Cập nhật sản phẩm**  
+Endpoint: `PUT /products/{id}`  
+Dữ liệu mẫu:
+```json
+{
+  "regular_price": "200000",
+  "stock_quantity": 10
+}
+```
+
+**d. Xóa sản phẩm**  
+Endpoint: `DELETE /products/{id}`  
+Ví dụ:
+```bash
+DELETE https://yourstore.com/wp-json/wc/v3/products/123?consumer_key=ck_xxx&consumer_secret=cs_xxx
+```
+
+---
+
+#### **3.2. Quản lý đơn hàng**
+**a. Lấy danh sách đơn hàng**  
+Endpoint: `GET /orders`  
+Lọc theo trạng thái:
+```bash
+GET https://yourstore.com/wp-json/wc/v3/orders?status=completed&consumer_key=ck_xxx&consumer_secret=cs_xxx
+```
+
+**b. Tạo đơn hàng mới**  
+Endpoint: `POST /orders`  
+Dữ liệu mẫu:
+```json
+{
+  "payment_method": "cod",
+  "payment_method_title": "Cash on Delivery",
+  "billing": {
+    "first_name": "Nguyen",
+    "last_name": "Van A",
+    "address_1": "123 Đường ABC",
+    "city": "Hà Nội",
+    "email": "email@example.com",
+    "phone": "0123456789"
+  },
+  "line_items": [
+    {
+      "product_id": 123,
+      "quantity": 2
+    }
+  ]
+}
+```
+
+**c. Cập nhật trạng thái đơn hàng**  
+Endpoint: `PUT /orders/{id}`  
+Dữ liệu mẫu:
+```json
+{
+  "status": "completed"
+}
+```
+
+**d. Xóa đơn hàng**  
+Endpoint: `DELETE /orders/{id}`  
+Ví dụ:
+```bash
+DELETE https://yourstore.com/wp-json/wc/v3/orders/456?force=true&consumer_key=ck_xxx&consumer_secret=cs_xxx
+```
+
+---
+
+#### **3.3. Quản lý khách hàng**
+**a. Lấy danh sách khách hàng**  
+Endpoint: `GET /customers`
+
+**b. Tạo khách hàng mới**  
+Endpoint: `POST /customers`  
+Dữ liệu mẫu:
+```json
+{
+  "email": "email@example.com",
+  "first_name": "Nguyen",
+  "last_name": "Van A",
+  "username": "nguyenvana",
+  "billing": {
+    "address_1": "123 Đường ABC",
+    "city": "Hà Nội",
+    "postcode": "100000",
+    "country": "VN"
+  }
+}
+```
+
+**c. Cập nhật thông tin khách hàng**  
+Endpoint: `PUT /customers/{id}`  
+Dữ liệu mẫu:
+```json
+{
+  "billing": {
+    "address_1": "456 Đường XYZ"
+  }
+}
+```
+
+**d. Xóa khách hàng**  
+Endpoint: `DELETE /customers/{id}`
+
+---
+
+#### **3.4. Quản lý danh mục**
+**a. Lấy danh sách danh mục**  
+Endpoint: `GET /products/categories`
+
+**b. Tạo danh mục mới**  
+Endpoint: `POST /products/categories`  
+Dữ liệu mẫu:
+```json
+{
+  "name": "Áo Quần",
+  "slug": "ao-quan"
+}
+```
+
+**c. Cập nhật danh mục**  
+Endpoint: `PUT /products/categories/{id}`  
+Ví dụ:
+```json
+{
+  "name": "Thời Trang Nam"
+}
+```
+
+**d. Xóa danh mục**  
+Endpoint: `DELETE /products/categories/{id}`
+
+---
+
+### **4. Thực hành tốt**
+1. **Xác thực API an toàn:**  
+   - Sử dụng HTTPS để bảo mật dữ liệu.
+   - Giới hạn quyền truy cập cho API Key theo nhu cầu (Read, Write).
+
+2. **Thử nghiệm trước khi áp dụng:**  
+   Dùng **Postman** để kiểm tra endpoint trước khi tích hợp vào hệ thống.
+
+3. **Xử lý lỗi API:**  
+   Khi API trả về lỗi, thường có mã trạng thái HTTP và thông báo chi tiết (ví dụ: `400 Bad Request`, `401 Unauthorized`).
+
+---
+
+Nếu bạn cần trợ giúp cụ thể trong việc triển khai API WooCommerce, hãy cho mình biết nhé!
